@@ -52,7 +52,7 @@ module siv_cmac_core(
 
                      output wire           ready,
                      output wire [127 : 0] result,
-                     output wire [127 : 0] tag,
+                     output wire [127 : 0] tag
                     );
 
 
@@ -80,6 +80,15 @@ module siv_cmac_core(
   //----------------------------------------------------------------
   // Wires.
   //----------------------------------------------------------------
+  wire           aes_core_encdec;
+  wire           aes_core_init;
+  wire           aes_core_next;
+  wire           aes_core_ready;
+  wire [255 : 0] aes_core_key;
+  wire           aes_core_keylen;
+  wire [127 : 0] aes_core_block;
+  wire [127 : 0] aes_core_result;
+  wire           aes_core_valid;
 
 
   //----------------------------------------------------------------
@@ -88,6 +97,27 @@ module siv_cmac_core(
   assign ready  = ready_reg;
   assign result = 128'h0;
   assign digest = 128'h0;
+
+
+  //----------------------------------------------------------------
+  // core instantiation.
+  //----------------------------------------------------------------
+  aes_core core(
+                .clk(clk),
+                .reset_n(reset_n),
+
+                .encdec(aes_core_encdec),
+                .init(aes_core_init),
+                .next(aes_core_next),
+                .ready(aes_core_ready),
+
+                .key(aes_core_key),
+                .keylen(aes_core_keylen),
+
+                .block(aes_core_block),
+                .result(aes_core_result),
+                .result_valid(aes_core_valid)
+               );
 
 
   //----------------------------------------------------------------
