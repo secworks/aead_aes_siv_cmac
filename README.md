@@ -23,5 +23,8 @@ AEAD_AES_SIV_CMAC_384 since [the aes
 core](https://github.com/secworks/aes) does not support 192 bit keys.
 
 
-## Implementation
-TBW.
+## Implementation details
+The core is based on a single AES primitive. The cmac functionaliy has
+been fetched from the [CMAC core](https://github.com/secworks/cmac). But
+since that core contains its own AES instantiation it has been modified
+to have the AES core extracted.
