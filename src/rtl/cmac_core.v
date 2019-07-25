@@ -53,6 +53,16 @@ module cmac_core(
 
                  input wire [127 : 0]  block,
 
+                 // AES connectivity
+                 output wire           ext_aes_encdec,
+                 output wire           ext_aes_init,
+                 output wire           ext_aes_next,
+                 input wire            ext_aes_ready,
+                 output wire [255 : 0] ext_aes_key,
+                 output wire           ext_aes_keylen,
+                 output wire [127 : 0] ext_aes_block,
+                 input wire [127 : 0]  ext_aes_result,
+
                  output wire [127 : 0] result,
                  output wire           ready,
                  output wire           valid
@@ -109,9 +119,7 @@ module cmac_core(
   reg            aes_init;
   reg            aes_next;
   wire           aes_encdec;
-  wire           aes_ready;
   reg  [127 : 0] aes_block;
-  wire [127 : 0] aes_result;
   wire           aes_valid;
 
   reg [1 : 0]    bmux_ctrl;
@@ -120,32 +128,16 @@ module cmac_core(
   //----------------------------------------------------------------
   // Concurrent connectivity for ports etc.
   //----------------------------------------------------------------
-  assign aes_encdec = 1'h1;
-
   assign result = result_reg;
   assign ready  = ready_reg;
   assign valid  = valid_reg;
 
-
-  //----------------------------------------------------------------
-  // AES core instantiation.
-  //----------------------------------------------------------------
-  aes_core aes_inst(
-                    .clk(clk),
-                    .reset_n(reset_n),
-
-                    .encdec(aes_encdec),
-                    .init(aes_init),
-                    .next(aes_next),
-                    .ready(aes_ready),
-
-                    .key(key),
-                    .keylen(keylen),
-
-                    .block(aes_block),
-                    .result(aes_result),
-                    .result_valid(aes_valid)
-                   );
+  assign ext_aes_encdec = 1'h1;
+  assign ext_aes_init   = aes_init;
+  assign ext_aes_next   = aes_next;
+  assign ext_aes_key    = key;
+  assign ext_aes_keylen = keylen;
+  assign ext_aes_block  = aes_block;
 
 
   //----------------------------------------------------------------
@@ -210,13 +202,13 @@ module cmac_core(
 
       if (update_result_reg)
         begin
-          result_new = aes_result;
+          result_new = ext_aes_result;
           result_we  = 1'h1;
         end
 
       // Generation of subkey k1 and k2.
-      k1_new = {aes_result[126 : 0], 1'b0};
-      if (aes_result[127])
+      k1_new = {ext_aes_result[126 : 0], 1'b0};
+      if (ext_aes_result[127])
         k1_new = k1_new ^ R128;
 
       k2_new = {k1_new[126 : 0], 1'b0};
@@ -335,7 +327,7 @@ module cmac_core(
 
         CTRL_INIT_CORE:
           begin
-            if (aes_ready)
+            if (ex_aes_ready)
               begin
                 aes_next      = 1'h1;
                 bmux_ctrl     = BMUX_ZERO;
@@ -346,7 +338,7 @@ module cmac_core(
 
         CTRL_GEN_SUBKEYS:
           begin
-            if (aes_ready)
+            if (ext_aes_ready)
               begin
                 ready_new     = 1'h1;
                 ready_we      = 1'h1;
@@ -372,7 +364,7 @@ module cmac_core(
         CTRL_FINAL_BLOCK:
           begin
             bmux_ctrl = BMUX_TWEAK;
-            if (aes_ready)
+            if (ext_aes_ready)
               begin
                 update_result_reg = 1'h1;
                 valid_new         = 1'h1;
