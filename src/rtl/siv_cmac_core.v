@@ -65,6 +65,10 @@ module siv_cmac_core(
   localparam CTRL_FINISH = 2'h3;
 
 
+  localparam AES_CMAC = 2'h0;
+  localparam AES_CTR  = 2'h1;
+
+
   //----------------------------------------------------------------
   // Registers including update variables and write enable.
   //----------------------------------------------------------------
@@ -80,6 +84,8 @@ module siv_cmac_core(
   //----------------------------------------------------------------
   // Wires.
   //----------------------------------------------------------------
+
+  reg [1 : 0]    aes_mux_ctrl;
   reg            aes_encdec;
   reg            aes_init;
   reg            aes_next;
@@ -106,6 +112,13 @@ module siv_cmac_core(
   wire [127 : 0] cmac_result;
   wire           cmac_ready;
   wire           cmac_valid;
+
+  reg           ctr_aes_encdec;
+  reg           ctr_aes_init;
+  reg           ctr_aes_next;
+  reg [255 : 0] ctr_aes_key;
+  reg           ctr_aes_keylen;
+  reg [127 : 0] ctr_aes_block;
 
 
   //----------------------------------------------------------------
@@ -193,7 +206,47 @@ module siv_cmac_core(
   //----------------------------------------------------------------
   always @*
     begin : siv_cmac_dp
+      aes_mux_ctrl = AES_CMAC;
 
+    end
+
+
+  //----------------------------------------------------------------
+  // AES access mux
+  //----------------------------------------------------------------
+  always @*
+    begin : aes_mux
+      case (aes_mux_ctrl)
+        AES_CMAC:
+          begin
+            aes_encdec = cmac_aes_encdec;
+            aes_init   = cmac_aes_init;
+            aes_next   = cmac_aes_next;
+            aes_key    = cmac_aes_key;
+            aes_keylen = cmac_aes_keylen;
+            aes_block  = cmac_aes_block;
+          end
+
+        AES_CTR:
+          begin
+            aes_encdec = ctr_aes_encdec;
+            aes_init   = ctr_aes_init;
+            aes_next   = ctr_aes_next;
+            aes_key    = ctr_aes_key;
+            aes_keylen = ctr_aes_keylen;
+            aes_block  = ctr_aes_block;
+          end
+
+        default:
+          begin
+            aes_encdec = 1'h0;
+            aes_init   = 1'h0;
+            aes_next   = 1'h0;
+            aes_key    = 256'h0;
+            aes_keylen = 1'h0;
+            aes_block  = 128'h0;
+          end
+      endcase // case (aes_mux_ctrl)
     end
 
 
@@ -206,7 +259,6 @@ module siv_cmac_core(
       ready_we      = 1'h0;
       core_ctrl_new = CTRL_IDLE;
       core_ctrl_we  = 1'h0;
-
 
       case (core_ctrl_reg)
         CTRL_IDLE:
