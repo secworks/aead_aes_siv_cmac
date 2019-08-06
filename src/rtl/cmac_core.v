@@ -327,7 +327,7 @@ module cmac_core(
 
         CTRL_INIT_CORE:
           begin
-            if (ex_aes_ready)
+            if (ext_aes_ready)
               begin
                 aes_next      = 1'h1;
                 bmux_ctrl     = BMUX_ZERO;
@@ -351,7 +351,7 @@ module cmac_core(
         CTRL_NEXT_BLOCK:
           begin
             bmux_ctrl = BMUX_MESSAGE;
-            if (aes_ready)
+            if (ext_aes_ready)
               begin
                 update_result_reg = 1'h1;
                 ready_new         = 1'h1;

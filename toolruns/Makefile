@@ -36,10 +36,14 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 #===================================================================
+AES_SRC_PATH = ../../aes/src/rtl
+AES_SRC = $(AES_SRC_PATH)/aes_core.v $(AES_SRC_PATH)/aes_decipher_block.v $(AES_SRC_PATH)/aes_encipher_block.v $(AES_SRC_PATH)/aes_inv_sbox.v $(AES_SRC_PATH)/aes_key_mem.v  $(AES_SRC_PATH)/aes_sbox.v
 
-CORE_SRC=../src/rtl/siv_cmac_core.v
+CMAC_SRC = ../src/rtl/cmac_core.v $(AES_SRC)
+TB_CMAC_SRC = ../src/tb/tb_cmac_core.v
 
-TB_CORE_SRC =../src/tb/tb_siv_cmac_core.v
+CORE_SRC = ../src/rtl/siv_cmac_core.v $(AES_SRC)
+TB_CORE_SRC = ../src/tb/tb_siv_cmac_core.v
 
 CC = iverilog
 CC_FLAGS = -Wall
@@ -48,15 +52,23 @@ LINT = verilator
 LINT_FLAGS = +1364-2001ext+ --lint-only  -Wall -Wno-fatal -Wno-DECLFILENAME
 
 
-all: core.sim
+all: core.sim cmac.sim
 
 
 core.sim: $(TB_CORE_SRC) $(CORE_SRC)
 	$(CC) $(CC_FLAGS) -o core.sim $(TB_CORE_SRC) $(CORE_SRC)
 
 
+cmac.sim: $(TB_CMAC_SRC) $(CMAC_SRC)
+	$(CC) $(CC_FLAGS) -o cmac.sim $(TB_CMAC_SRC) $(CMAC_SRC)
+
+
 sim-core: core.sim
 	./core.sim
+
+
+sim-cmac: cmac.sim
+	./cmac.sim
 
 
 lint:  $(CORE_SRC)
@@ -65,6 +77,7 @@ lint:  $(CORE_SRC)
 
 clean:
 	rm -f core.sim
+	rm -f cmac.sim
 
 
 help:
@@ -74,7 +87,9 @@ help:
 	@echo "------------------"
 	@echo "all:          Build all simulation targets."
 	@echo "core.sim:     Build core level simulation target."
+	@echo "cmac.sim:     Build cmac core simulation target."
 	@echo "sim-core:     Run core level simulation."
+	@echo "sim-cmac:     Run cmac core simulation."
 	@echo "lint:         Lint all rtl source files."
 	@echo "clean:        Delete all built files."
 

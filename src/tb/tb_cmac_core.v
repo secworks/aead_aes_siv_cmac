@@ -123,25 +123,61 @@ module tb_cmac_core();
   wire           tb_ready;
   wire           tb_valid;
 
+  wire           tb_aes_encdec;
+  wire           tb_aes_init;
+  wire           tb_aes_next;
+  wire           tb_aes_ready;
+  wire [255 : 0] tb_aes_key;
+  wire           tb_aes_keylen;
+  wire [127 : 0] tb_aes_block;
+  wire [127 : 0] tb_aes_result;
+  wire           tb_aes_valid;
+
 
   //----------------------------------------------------------------
-  // Device Under Test.
+  // Instantiations.
   //----------------------------------------------------------------
   cmac_core dut(
-           .clk(tb_clk),
-           .reset_n(tb_reset_n),
+                .clk(tb_clk),
+                .reset_n(tb_reset_n),
 
-           .key(tb_key),
-           .keylen(tb_keylen),
-           .final_size(tb_final_size),
-           .init(tb_init),
-           .next(tb_next),
-           .finalize(tb_finalize),
-           .block(tb_block),
-           .result(tb_result),
-           .ready(tb_ready),
-           .valid(tb_valid)
-          );
+                .key(tb_key),
+                .keylen(tb_keylen),
+                .final_size(tb_final_size),
+                .init(tb_init),
+                .next(tb_next),
+                .finalize(tb_finalize),
+                .block(tb_block),
+
+                .ext_aes_encdec(tb_aes_encdec),
+                .ext_aes_init(tb_aes_init),
+                .ext_aes_next(tb_aes_next),
+                .ext_aes_ready(tb_aes_ready),
+                .ext_aes_key(tb_aes_key),
+                .ext_aes_keylen(tb_aes_keylen),
+                .ext_aes_block(tb_aes_block),
+                .ext_aes_result(tb_aes_result),
+
+                .result(tb_result),
+                .ready(tb_ready),
+                .valid(tb_valid)
+               );
+
+
+
+  aes_core aes(
+               .clk(tb_clk),
+               .reset_n(tb_reset_n),
+               .encdec(tb_aes_encdec),
+               .init(tb_aes_init),
+               .next(tb_aes_next),
+               .ready(tb_aes_ready),
+               .key(tb_aes_key),
+               .keylen(tb_aes_keylen),
+               .block(tb_aes_block),
+               .result(tb_aes_result),
+               .result_valid(tb_aes_valid)
+              );
 
 
   //----------------------------------------------------------------
