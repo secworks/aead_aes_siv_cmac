@@ -80,15 +80,32 @@ module siv_cmac_core(
   //----------------------------------------------------------------
   // Wires.
   //----------------------------------------------------------------
-  wire           aes_core_encdec;
-  wire           aes_core_init;
-  wire           aes_core_next;
-  wire           aes_core_ready;
-  wire [255 : 0] aes_core_key;
-  wire           aes_core_keylen;
-  wire [127 : 0] aes_core_block;
-  wire [127 : 0] aes_core_result;
-  wire           aes_core_valid;
+  reg            aes_encdec;
+  reg            aes_init;
+  reg            aes_next;
+  reg [255 : 0]  aes_key;
+  reg            aes_keylen;
+  reg [127 : 0]  aes_block;
+  wire [127 : 0] aes_result;
+  wire           aes_ready;
+  wire           aes_valid;
+
+  reg [255 : 0]  cmac_key;
+  reg            cmac_keylen;
+  reg [7 : 0]    cmac_final_size;
+  reg            cmac_init;
+  reg            cmac_next;
+  reg            cmac_finalize;
+  reg [127 : 0]  cmac_block;
+  wire           cmac_aes_encdec;
+  wire           cmac_aes_init;
+  wire           cmac_aes_next;
+  wire [255 : 0] cmac_aes_key;
+  wire           cmac_aes_keylen;
+  wire [127 : 0] cmac_aes_block;
+  wire [127 : 0] cmac_result;
+  wire           cmac_ready;
+  wire           cmac_valid;
 
 
   //----------------------------------------------------------------
@@ -100,24 +117,48 @@ module siv_cmac_core(
 
 
   //----------------------------------------------------------------
-  // core instantiation.
+  // core instantiations.
   //----------------------------------------------------------------
-  aes_core core(
-                .clk(clk),
-                .reset_n(reset_n),
+  aes_core aes(
+               .clk(clk),
+               .reset_n(reset_n),
 
-                .encdec(aes_core_encdec),
-                .init(aes_core_init),
-                .next(aes_core_next),
-                .ready(aes_core_ready),
+               .encdec(aes_encdec),
+               .init(aes_init),
+               .next(aes_next),
+               .ready(aes_ready),
 
-                .key(aes_core_key),
-                .keylen(aes_core_keylen),
+               .key(aes_key),
+               .keylen(aes_keylen),
 
-                .block(aes_core_block),
-                .result(aes_core_result),
-                .result_valid(aes_core_valid)
+               .block(aes_block),
+               .result(aes_result),
+               .result_valid(aes_valid)
                );
+
+
+  cmac_core cmac(
+                 .clk(clk),
+                 .reset_n(reset_n),
+                 .key(cmac_key),
+                 .keylen(cmac_keylen),
+                 .final_size(cmac_final_size),
+                 .init(cmac_init),
+                 .next(cmac_next),
+                 .finalize(cmac_finalize),
+                 .block(cmac_block),
+                 .aes_encdec(cmac_aes_encdec),
+                 .aes_init(cmac_aes_init),
+                 .aes_next(cmac_aes_next),
+                 .aes_ready(aes_ready),
+                 .aes_key(cmac_aes_key),
+                 .aes_keylen(cmac_aes_keylen),
+                 .aes_block(cmac_aes_block),
+                 .aes_result(aes_result),
+                 .result(cmac_result),
+                 .ready(cmac_ready),
+                 .valid(cmac_valid)
+                );
 
 
   //----------------------------------------------------------------
@@ -143,6 +184,17 @@ module siv_cmac_core(
             core_ctrl_reg <= core_ctrl_new;
         end
     end // reg_update
+
+
+  //----------------------------------------------------------------
+  // siv_cmac_dp
+  //
+  // The main datapath. Includes the AES access mux.
+  //----------------------------------------------------------------
+  always @*
+    begin : siv_cmac_dp
+
+    end
 
 
   //----------------------------------------------------------------

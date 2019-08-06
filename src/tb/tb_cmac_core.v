@@ -149,20 +149,19 @@ module tb_cmac_core();
                 .finalize(tb_finalize),
                 .block(tb_block),
 
-                .ext_aes_encdec(tb_aes_encdec),
-                .ext_aes_init(tb_aes_init),
-                .ext_aes_next(tb_aes_next),
-                .ext_aes_ready(tb_aes_ready),
-                .ext_aes_key(tb_aes_key),
-                .ext_aes_keylen(tb_aes_keylen),
-                .ext_aes_block(tb_aes_block),
-                .ext_aes_result(tb_aes_result),
+                .aes_encdec(tb_aes_encdec),
+                .aes_init(tb_aes_init),
+                .aes_next(tb_aes_next),
+                .aes_ready(tb_aes_ready),
+                .aes_key(tb_aes_key),
+                .aes_keylen(tb_aes_keylen),
+                .aes_block(tb_aes_block),
+                .aes_result(tb_aes_result),
 
                 .result(tb_result),
                 .ready(tb_ready),
                 .valid(tb_valid)
                );
-
 
 
   aes_core aes(

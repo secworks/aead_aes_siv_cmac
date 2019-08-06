@@ -42,7 +42,7 @@ AES_SRC = $(AES_SRC_PATH)/aes_core.v $(AES_SRC_PATH)/aes_decipher_block.v $(AES_
 CMAC_SRC = ../src/rtl/cmac_core.v $(AES_SRC)
 TB_CMAC_SRC = ../src/tb/tb_cmac_core.v
 
-CORE_SRC = ../src/rtl/siv_cmac_core.v $(AES_SRC)
+CORE_SRC = ../src/rtl/siv_cmac_core.v $(CMAC_SRC)
 TB_CORE_SRC = ../src/tb/tb_siv_cmac_core.v
 
 CC = iverilog
