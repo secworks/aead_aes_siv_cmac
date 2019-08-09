@@ -206,13 +206,26 @@ module tb_aes_siv_core();
   //----------------------------------------------------------------
   task init_sim;
     begin
-      cycle_ctr     = 0;
-      error_ctr     = 0;
-      tc_ctr        = 0;
-      debug_ctrl    = 0;
+      cycle_ctr  = 0;
+      error_ctr  = 0;
+      tc_ctr     = 0;
+      debug_ctrl = 0;
 
-      tb_clk        = 1'h0;
-      tb_reset_n    = 1'h1;
+      tb_clk             = 1'h0;
+      tb_reset_n         = 1'h1;
+      tb_s2v_init        = 1'h0;
+      tb_s2v_first_block = 1'h0;
+      tb_s2v_next_block  = 1'h0;
+      tb_s2v_final_block = 1'h0;
+      tb_s2v_finalize    = 1'h0;
+      tb_ctr_init        = 1'h0;
+      tb_ctr_next        = 1'h0;
+      tb_ctr_finalize    = 1'h0;
+      tb_encdec          = 1'h0;
+      tb_key             = 512'h0;
+      tb_mode            = 1'h0;
+      tb_block           = 128'h0;
+      tb_blocklen        = 1'h0;
     end
   endtask // init_sim
 
