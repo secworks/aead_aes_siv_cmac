@@ -204,6 +204,7 @@ module aes_siv_core(
   //----------------------------------------------------------------
   // core instantiations.
   //----------------------------------------------------------------
+  // AES core is only used for CTR part.
   aes_core aes(
                .clk(clk),
                .reset_n(reset_n),
@@ -232,14 +233,6 @@ module aes_siv_core(
                  .next(cmac_next),
                  .finalize(cmac_finalize),
                  .block(cmac_block),
-                 .aes_encdec(cmac_aes_encdec),
-                 .aes_init(cmac_aes_init),
-                 .aes_next(cmac_aes_next),
-                 .aes_ready(aes_ready),
-                 .aes_key(cmac_aes_key),
-                 .aes_keylen(cmac_aes_keylen),
-                 .aes_block(cmac_aes_block),
-                 .aes_result(aes_result),
                  .result(cmac_result),
                  .ready(cmac_ready),
                  .valid(cmac_valid)
