@@ -51,6 +51,9 @@ module tb_aes_siv_core();
   localparam CLK_HALF_PERIOD = 1;
   localparam CLK_PERIOD      = 2 * CLK_HALF_PERIOD;
 
+  localparam AEAD_AES_SIV_CMAC_256 = 1'h0;
+  localparam AEAD_AES_SIV_CMAC_512 = 1'h1;
+
   localparam AES_BLOCK_SIZE = 128;
 
 
@@ -154,10 +157,27 @@ module tb_aes_siv_core();
     begin
       $display("cycle:  0x%016x", cycle_ctr);
       $display("Inputs and outputs:");
+      $display("s2v_init: 0x%01x, s2v_finalize: 0x%01x", dut.s2v_init, dut.s2v_finalize);
+      $display("s2v_first_block: 0x%01x, s2v_next_block: 0x%01x, s2v_final_block: 0x%01x",
+               dut.s2v_first_block, dut.s2v_next_block, dut.s2v_final_block);
+      $display("ctr_init: 0x%01x, ctr_next: 0x%01x, ctr_finalize: 0x%01x",
+               dut.ctr_init, dut.ctr_next, dut.ctr_finalize);
+      $display("key: 0x%064x", dut.key);
+
+      $display("AES:");
+      $display("aes_ready: 0x%01x, aes_init: 0x%01x, aes_next = 0x%01x",
+               dut.aes_ready, dut.aes_init, dut.aes_next);
+      $display("aes_keylen: 0x%01x, aes_key: 0x%032x", dut.aes_keylen, dut.aes_key);
       $display("");
 
       $display("Internal states:");
-      $display("");
+      $display("ctrl_reg: 0x%02x, ctrl_new: 0x%02x, ctrl_we: 0x%01x",
+               dut.core_ctrl_reg, dut.core_ctrl_new, dut.core_ctrl_we);
+      $display("s2v_state_reg: 0x%01x, s2v_state_new: 0x%01x, s2v_state_we: 0x%01x",
+               dut.s2v_state_reg, dut.s2v_state_new, dut.s2v_state_we);
+      $display("d_reg: 0x%016x, d_new: 0x%016x, d_we: 0x%01x",
+               dut.d_reg, dut.d_new, dut.d_we);
+      $display("\n");
     end
   endtask // dump_dut_state
 
@@ -291,6 +311,48 @@ module tb_aes_siv_core();
 
 
   //----------------------------------------------------------------
+  // tc2_s2v_init
+  //
+  // Check that pulling s2v_init perform cmac operation in all
+  // zero data and sets the d_reg correctly. Key from RFC 5297.
+  //----------------------------------------------------------------
+  task tc2_s2v_init;
+    begin : tc2
+      inc_tc_ctr();
+      tc_correct = 1;
+
+      debug_ctrl = 1;
+
+      $display("TC2: Check that s2v_init works as expected..");
+      tb_key  = {128'hfffefdfc_fbfaf9f8_f7f6f5f4_f3f2f1f0, {128{1'h0}},
+                   128'hf0f1f2f3_f4f5f6f7_f8f9fafb_fcfdfeff, {128{1'h0}}};
+      tb_mode = AEAD_AES_SIV_CMAC_256;
+
+      tb_s2v_init = 1'h1;
+      #(2 * CLK_PERIOD);
+      tb_s2v_init = 1'h0;
+      wait_ready();
+
+      #(2 * CLK_PERIOD);
+      debug_ctrl = 0;
+
+      if (dut.d_reg != 128'hfbeed618_35713366_7c85e08f_7236a8de)
+        begin
+          $display("TC2: ERROR - K1 incorrect. Expected 0xfbeed618_35713366_7c85e08f_7236a8de, got 0x%032x.", dut.d_reg);
+          tc_correct = 0;
+          inc_error_ctr();
+        end
+
+      if (tc_correct)
+        $display("TC2: SUCCESS - K1 and K2 subkeys correctly generated.");
+      else
+        $display("TC2: NO SUCCESS - Subkeys not correctly generated.");
+      $display("");
+    end
+  endtask // tc2
+
+
+  //----------------------------------------------------------------
   // main
   //
   // The main test functionality.
@@ -303,7 +365,7 @@ module tb_aes_siv_core();
       init_sim();
 
       tc1_reset_state();
-
+      tc2_s2v_init();
       display_test_results();
 
       $display("*** AES_SIV_CORE simulation done. ***");

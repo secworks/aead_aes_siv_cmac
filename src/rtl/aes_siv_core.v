@@ -304,7 +304,9 @@ module aes_siv_core(
   //----------------------------------------------------------------
   always @*
     begin : siv_cmac_dp
-      v_we            = 1'h0;
+      d_new = 128'h0;
+      d_we  = 1'h0;
+      v_we  = 1'h0;
 
       cmac_block      = 128'h0;
       cmac_key        = key[511 : 256];
@@ -525,7 +527,8 @@ module aes_siv_core(
               begin
                 s2v_state_new = 1'h1;
                 s2v_state_we  = 1'h1;
-
+                update_d      = 1'h1;
+                ctrl_d          = D_INIT;
                 ready_new     = 1'h1;
                 ready_we      = 1'h1;
                 core_ctrl_new = CTRL_IDLE;
