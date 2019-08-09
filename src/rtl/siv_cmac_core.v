@@ -73,7 +73,7 @@ module siv_cmac_core(
   //----------------------------------------------------------------
   localparam CTRL_IDLE          = 4'h0;
   localparam CTRL_S2V_INIT0     = 4'h1;
-  localparam CTRL_S2V_INIT1     = 4'h1;
+  localparam CTRL_S2V_INIT1     = 4'h2;
   localparam CTRL_S2V_FINALIZE0 = 4'h6;
   localparam CTRL_S2V_FINALIZE1 = 4'h7;
   localparam CTRL_CTR_INIT0     = 4'h8;
@@ -115,7 +115,6 @@ module siv_cmac_core(
   reg           d_we;
 
   reg [127 : 0] v_reg;
-  reg [127 : 0] v_new;
   reg           v_we;
 
   reg [127 : 0] x_reg;
@@ -138,9 +137,6 @@ module siv_cmac_core(
   //----------------------------------------------------------------
   // Wires.
   //----------------------------------------------------------------
-  reg [255 : 0]  k1;
-  reg [255 : 0]  k2;
-
   reg [1 : 0]    aes_mux_ctrl;
   reg            aes_encdec;
   reg            aes_init;
@@ -172,11 +168,8 @@ module siv_cmac_core(
   reg            init_ctr;
   reg            update_ctr;
 
-  reg            ctr_aes_encdec;
   reg            ctr_aes_init;
   reg            ctr_aes_next;
-  reg [255 : 0]  ctr_aes_key;
-  reg            ctr_aes_keylen;
   reg [127 : 0]  ctr_aes_block;
 
   reg [1 : 0]    cmac_inputs;
@@ -311,7 +304,6 @@ module siv_cmac_core(
   //----------------------------------------------------------------
   always @*
     begin : siv_cmac_dp
-      v_new           = 128'h0;
       v_we            = 1'h0;
 
       cmac_block      = 128'h0;
@@ -320,7 +312,6 @@ module siv_cmac_core(
 
       if (update_v)
         begin
-          v_new = d_reg;
           v_we  = 1'h1;
         end
 
@@ -340,7 +331,7 @@ module siv_cmac_core(
       case (cmac_inputs)
         CMAC_ZEROES: cmac_block = 128'h0;
         CMAC_ONES:   cmac_block = {128{1'h1}};
-        CMAC_DATA:   cmac_block = block;
+        CMAC_DATA:   cmac_block = block_reg;
         CMAC_FINAL:  cmac_block = d_reg;
       endcase // case (cmac_inputs)
     end
@@ -371,7 +362,7 @@ module siv_cmac_core(
       // 64 bit adder used.
       if (update_ctr)
         begin
-          result_new = block ^ aes_result;
+          result_new = block_reg ^ aes_result;
           result_we  = 1'h1;
           x_tmp = x_reg[63 : 0] + 1'h1;
           x_new = {x_reg[127 : 64], x_tmp};
@@ -571,7 +562,6 @@ module siv_cmac_core(
               begin
                 s2v_state_new = 1'h0;
                 s2v_state_we  = 1'h1;
-                v_new         = 1'h1;
                 ready_new     = 1'h1;
                 ready_we      = 1'h1;
                 core_ctrl_new = CTRL_IDLE;
