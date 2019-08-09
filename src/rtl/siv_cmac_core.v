@@ -93,6 +93,10 @@ module siv_cmac_core(
   localparam CMAC_DATA   = 2'h2;
   localparam CMAC_FINAL  = 2'h3;
 
+  localparam D_INIT = 2'h0;
+  localparam D_DBL  = 2'h1;
+  localparam D_XOR  = 2'h2;
+
   localparam AES_BLOCK_SIZE = 128;
 
 
@@ -176,6 +180,11 @@ module siv_cmac_core(
   reg [127 : 0]  ctr_aes_block;
 
   reg [1 : 0]    cmac_inputs;
+
+  reg            update_d;
+  reg [1 : 0]    ctrl_d;
+
+  reg            update_v;
 
 
   //----------------------------------------------------------------
@@ -302,17 +311,31 @@ module siv_cmac_core(
   //----------------------------------------------------------------
   always @*
     begin : siv_cmac_dp
-      reg [127 : 0] dbl_block;
+      v_new           = 128'h0;
+      v_we            = 1'h0;
 
       cmac_block      = 128'h0;
       cmac_key        = key[511 : 256];
       cmac_keylen     = mode;
 
-      v_new = 128'h0;
-      v_we  = 1'h0;
+      if (update_v)
+        begin
+          v_new = d_reg;
+          v_we  = 1'h1;
+        end
 
-      // Double and xor for S2V
-      d_new = double(d_reg) ^ cmac_result;
+      if (update_d)
+        begin
+          d_we = 1'h1;
+          case (ctrl_d)
+            D_INIT: d_new = cmac_result;
+            D_DBL:  d_new = double(d_reg);
+            D_XOR:  d_new = d_reg ^ cmac_result;
+            default
+              begin
+              end
+          endcase // case (d_ctrl)
+        end
 
       case (cmac_inputs)
         CMAC_ZEROES: cmac_block = 128'h0;
@@ -362,6 +385,13 @@ module siv_cmac_core(
   //----------------------------------------------------------------
   always @*
     begin : aes_mux
+      aes_encdec = 1'h0;
+      aes_init   = 1'h0;
+      aes_next   = 1'h0;
+      aes_key    = 256'h0;
+      aes_keylen = 1'h0;
+      aes_block  = 128'h0;
+
       case (aes_mux_ctrl)
         AES_CMAC:
           begin
@@ -385,12 +415,6 @@ module siv_cmac_core(
 
         default:
           begin
-            aes_encdec = 1'h0;
-            aes_init   = 1'h0;
-            aes_next   = 1'h0;
-            aes_key    = 256'h0;
-            aes_keylen = 1'h0;
-            aes_block  = 128'h0;
           end
       endcase // case (aes_mux_ctrl)
     end
@@ -413,15 +437,16 @@ module siv_cmac_core(
       update_ctr      = 1'h0;
       ctr_aes_init    = 1'h0;
       ctr_aes_next    = 1'h0;
-      v_we            = 1'h0;
       block_we        = 1'h0;
       result_new      = 128'h0;
       result_we       = 1'h0;
       aes_mux_ctrl    = AES_CMAC;
       cmac_inputs     = CMAC_ZEROES;
+      update_d        = 1'h0;
+      ctrl_d          = D_INIT;
+      update_v        = 1'h0;
       core_ctrl_new   = CTRL_IDLE;
       core_ctrl_we    = 1'h0;
-
 
       case (core_ctrl_reg)
         CTRL_IDLE:
@@ -509,6 +534,7 @@ module siv_cmac_core(
               begin
                 s2v_state_new = 1'h1;
                 s2v_state_we  = 1'h1;
+
                 ready_new     = 1'h1;
                 ready_we      = 1'h1;
                 core_ctrl_new = CTRL_IDLE;
@@ -602,17 +628,6 @@ module siv_cmac_core(
               end
           end
 
-
-        CTRL_WAIT_READY:
-          begin
-            if (aes_ready)
-              begin
-                ready_new     = 1'h1;
-                ready_we      = 1'h1;
-                core_ctrl_new = CTRL_IDLE;
-                core_ctrl_we  = 1'h1;
-              end
-          end
 
         default:
           begin
