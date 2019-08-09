@@ -185,8 +185,7 @@ module tb_aes_siv_core();
       $display("Control and internal states:");
       $display("ctrl_reg: 0x%02x, ctrl_new: 0x%02x, ctrl_we: 0x%01x",
                dut.core_ctrl_reg, dut.core_ctrl_new, dut.core_ctrl_we);
-      $display("aes_mux_ctrl: 0x%02x, cmac_inputs: 0x%02x",
-               dut.aes_mux_ctrl, dut.cmac_inputs);
+      $display("cmac_inputs: 0x%02x", dut.cmac_inputs);
       $display("s2v_state_reg: 0x%01x, s2v_state_new: 0x%01x, s2v_state_we: 0x%01x",
                dut.s2v_state_reg, dut.s2v_state_new, dut.s2v_state_we);
       $display("d_reg: 0x%016x, d_new: 0x%016x, d_we: 0x%01x",

@@ -82,9 +82,6 @@ module aes_siv_core(
   localparam CTRL_CTR_NEXT1     = 4'hb;
   localparam CTRL_WAIT_READY    = 4'hf;
 
-  localparam AES_CMAC = 2'h0;
-  localparam AES_CTR  = 2'h1;
-
   localparam AEAD_AES_SIV_CMAC_256 = 1'h0;
   localparam AEAD_AES_SIV_CMAC_512 = 1'h1;
 
@@ -137,7 +134,6 @@ module aes_siv_core(
   //----------------------------------------------------------------
   // Wires.
   //----------------------------------------------------------------
-  reg [1 : 0]    aes_mux_ctrl;
   reg            aes_encdec;
   reg            aes_init;
   reg            aes_next;
@@ -155,24 +151,13 @@ module aes_siv_core(
   reg            cmac_next;
   reg            cmac_finalize;
   reg [127 : 0]  cmac_block;
-  wire           cmac_aes_encdec;
-  wire           cmac_aes_init;
-  wire           cmac_aes_next;
-  wire [255 : 0] cmac_aes_key;
-  wire           cmac_aes_keylen;
-  wire [127 : 0] cmac_aes_block;
   wire [127 : 0] cmac_result;
   wire           cmac_ready;
   wire           cmac_valid;
+  reg [1 : 0]    cmac_inputs;
 
   reg            init_ctr;
   reg            update_ctr;
-
-  reg            ctr_aes_init;
-  reg            ctr_aes_next;
-  reg [127 : 0]  ctr_aes_block;
-
-  reg [1 : 0]    cmac_inputs;
 
   reg            update_d;
   reg [1 : 0]    ctrl_d;
@@ -301,9 +286,16 @@ module aes_siv_core(
       d_we  = 1'h0;
       v_we  = 1'h0;
 
-      cmac_block      = 128'h0;
-      cmac_key        = key[511 : 256];
-      cmac_keylen     = mode;
+      cmac_block  = 128'h0;
+      cmac_key    = key[511 : 256];
+      cmac_keylen = mode;
+
+      case (cmac_inputs)
+        CMAC_ZEROES: cmac_block = 128'h0;
+        CMAC_ONES:   cmac_block = {128{1'h1}};
+        CMAC_DATA:   cmac_block = block_reg;
+        CMAC_FINAL:  cmac_block = d_reg;
+      endcase // case (cmac_inputs)
 
       if (update_v)
         begin
@@ -322,13 +314,6 @@ module aes_siv_core(
               end
           endcase // case (d_ctrl)
         end
-
-      case (cmac_inputs)
-        CMAC_ZEROES: cmac_block = 128'h0;
-        CMAC_ONES:   cmac_block = {128{1'h1}};
-        CMAC_DATA:   cmac_block = block_reg;
-        CMAC_FINAL:  cmac_block = d_reg;
-      endcase // case (cmac_inputs)
     end
 
 
@@ -367,46 +352,6 @@ module aes_siv_core(
 
 
   //----------------------------------------------------------------
-  // AES access mux
-  //----------------------------------------------------------------
-  always @*
-    begin : aes_mux
-      aes_encdec = 1'h0;
-      aes_init   = 1'h0;
-      aes_next   = 1'h0;
-      aes_key    = 256'h0;
-      aes_keylen = 1'h0;
-      aes_block  = 128'h0;
-
-      case (aes_mux_ctrl)
-        AES_CMAC:
-          begin
-            aes_encdec = cmac_aes_encdec;
-            aes_init   = cmac_aes_init;
-            aes_next   = cmac_aes_next;
-            aes_key    = cmac_aes_key;
-            aes_keylen = cmac_aes_keylen;
-            aes_block  = cmac_aes_block;
-          end
-
-        AES_CTR:
-          begin
-            aes_encdec = 1'h1;
-            aes_init   = ctr_aes_init;
-            aes_next   = ctr_aes_next;
-            aes_key    = key[255 : 0];
-            aes_keylen = mode;
-            aes_block  = x_reg;
-          end
-
-        default:
-          begin
-          end
-      endcase // case (aes_mux_ctrl)
-    end
-
-
-  //----------------------------------------------------------------
   // core_ctrl
   //----------------------------------------------------------------
   always @*
@@ -421,12 +366,9 @@ module aes_siv_core(
       s2v_state_we    = 1'h0;
       init_ctr        = 1'h0;
       update_ctr      = 1'h0;
-      ctr_aes_init    = 1'h0;
-      ctr_aes_next    = 1'h0;
       block_we        = 1'h0;
       result_new      = 128'h0;
       result_we       = 1'h0;
-      aes_mux_ctrl    = AES_CMAC;
       cmac_inputs     = CMAC_ZEROES;
       update_d        = 1'h0;
       ctrl_d          = D_INIT;
@@ -440,7 +382,6 @@ module aes_siv_core(
             if (s2v_init)
               begin
                 cmac_init     = 1'h1;
-                aes_mux_ctrl  = AES_CMAC;
                 ready_new     = 1'h0;
                 ready_we      = 1'h1;
                 core_ctrl_new = CTRL_S2V_INIT0;
@@ -467,7 +408,6 @@ module aes_siv_core(
               begin
                 cmac_init     = 1'h1;
                 block_we      = 1'h1;
-                aes_mux_ctrl  = AES_CMAC;
                 ready_new     = 1'h0;
                 ready_we      = 1'h1;
                 core_ctrl_new = CTRL_S2V_FINALIZE0;
@@ -500,7 +440,6 @@ module aes_siv_core(
 
         CTRL_S2V_INIT0:
           begin
-            aes_mux_ctrl  = AES_CMAC;
             if (cmac_ready)
               begin
                 cmac_inputs     = CMAC_ZEROES;
@@ -514,14 +453,12 @@ module aes_siv_core(
 
         CTRL_S2V_INIT1:
           begin
-            aes_mux_ctrl  = AES_CMAC;
-
             if (cmac_ready)
               begin
                 s2v_state_new = 1'h1;
                 s2v_state_we  = 1'h1;
                 update_d      = 1'h1;
-                ctrl_d          = D_INIT;
+                ctrl_d        = D_INIT;
                 ready_new     = 1'h1;
                 ready_we      = 1'h1;
                 core_ctrl_new = CTRL_IDLE;
@@ -532,8 +469,6 @@ module aes_siv_core(
 
         CTRL_S2V_FINALIZE0:
           begin
-            aes_mux_ctrl  = AES_CMAC;
-
             if (cmac_ready)
               begin
                 if (!s2v_state_reg)
@@ -569,8 +504,6 @@ module aes_siv_core(
         CTRL_CTR_INIT0:
           begin
             init_ctr      = 1'h1;
-            ctr_aes_init  = 1'h1;
-            aes_mux_ctrl  = AES_CTR;
             core_ctrl_new = CTRL_CTR_INIT1;
             core_ctrl_we  = 1'h1;
           end
@@ -578,8 +511,6 @@ module aes_siv_core(
 
         CTRL_CTR_INIT1:
           begin
-            aes_mux_ctrl = AES_CTR;
-
             if (aes_ready)
               begin
                 ready_new     = 1'h1;
@@ -592,8 +523,6 @@ module aes_siv_core(
 
         CTRL_CTR_NEXT0:
           begin
-            ctr_aes_next  = 1'h1;
-            aes_mux_ctrl  = AES_CTR;
             core_ctrl_new = CTRL_CTR_NEXT1;
             core_ctrl_we  = 1'h1;
           end
@@ -601,8 +530,6 @@ module aes_siv_core(
 
         CTRL_CTR_NEXT1:
           begin
-            aes_mux_ctrl = AES_CTR;
-
             if (aes_ready)
               begin
                 update_ctr    = 1'h1;
