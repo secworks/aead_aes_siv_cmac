@@ -230,13 +230,23 @@ module tb_cmac_core();
                dut.keylen, dut.final_size);
       $display("block = 0x%032x, ready = 0x%01x, result =  0x%032x",
                dut.block, dut.ready, dut.result);
+      $display("");
+
+      $display("AES");
+      $display("aes_ready = 0x%01x, aes_init = 0x%01x, aes_next = 0x%01x, aes_encdec = 0x%01x",
+               tb_aes_ready, tb_aes_init, tb_aes_next, tb_aes_encdec);
+      $display("aes_keylen = 0x%01x, aes_key = 0x%064x",
+               tb_aes_keylen, tb_aes_key);
+      $display("aes_block = 0x%032x, aes_result = 0x%032x",
+               tb_aes_block, tb_aes_result);
+      $display("");
 
       $display("Internal states:");
       $display("k1 = 0x%016x, k2 = 0x%016x", dut.k1_reg, dut.k2_reg);
       $display("ready = 0x%01x, valid = 0x%01x, result_we = 0x%01x, block_mux = 0x%02x, ctrl_state = 0x%02x",
                dut.ready, dut.valid, dut.result_we, dut.bmux_ctrl, dut.cmac_ctrl_reg);
       $display("tweaked_block: 0x%032x", dut.cmac_datapath.tweaked_block);
-      $display("");
+      $display("\n");
     end
   endtask // dump_dut_state
 
