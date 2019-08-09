@@ -163,20 +163,36 @@ module tb_aes_siv_core();
       $display("ctr_init: 0x%01x, ctr_next: 0x%01x, ctr_finalize: 0x%01x",
                dut.ctr_init, dut.ctr_next, dut.ctr_finalize);
       $display("key: 0x%064x", dut.key);
+      $display("blocklen: 0x%02x, block: 0x%016x", dut.blocklen, dut.block);
+      $display("ready: 0x%02x, result: 0x%016x, tag: 0x%016x",
+               dut.ready, dut.result, dut.tag);
+      $display("");
 
       $display("AES:");
       $display("aes_ready: 0x%01x, aes_init: 0x%01x, aes_next = 0x%01x",
                dut.aes_ready, dut.aes_init, dut.aes_next);
       $display("aes_keylen: 0x%01x, aes_key: 0x%032x", dut.aes_keylen, dut.aes_key);
+      $display("aes_block: 0x%016x, aes_result: 0x%016x", dut.aes_block, dut.aes_result);
       $display("");
 
-      $display("Internal states:");
+      $display("CMAC:");
+      $display("cmac_ready: 0x%01x, cmac_init: 0x%01x, cmac_next: 0x%01x, cmac_finalize = 0x%01x",
+               dut.cmac_ready, dut.cmac_init, dut.cmac_next, dut.cmac_finalize);
+      $display("cmac_keylen: 0x%01x, cmac_key: 0x%032x", dut.cmac_keylen, dut.cmac_key);
+      $display("cmac_block: 0x%016x, cmac_result: 0x%016x", dut.cmac_block, dut.cmac_result);
+      $display("");
+
+      $display("Control and internal states:");
       $display("ctrl_reg: 0x%02x, ctrl_new: 0x%02x, ctrl_we: 0x%01x",
                dut.core_ctrl_reg, dut.core_ctrl_new, dut.core_ctrl_we);
+      $display("aes_mux_ctrl: 0x%02x, cmac_inputs: 0x%02x",
+               dut.aes_mux_ctrl, dut.cmac_inputs);
       $display("s2v_state_reg: 0x%01x, s2v_state_new: 0x%01x, s2v_state_we: 0x%01x",
                dut.s2v_state_reg, dut.s2v_state_new, dut.s2v_state_we);
       $display("d_reg: 0x%016x, d_new: 0x%016x, d_we: 0x%01x",
                dut.d_reg, dut.d_new, dut.d_we);
+      $display("x_reg: 0x%016x, x_new: 0x%016x, x_we: 0x%01x",
+               dut.x_reg, dut.x_new, dut.x_we);
       $display("\n");
     end
   endtask // dump_dut_state
