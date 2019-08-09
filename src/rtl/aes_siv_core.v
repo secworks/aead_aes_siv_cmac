@@ -1,7 +1,7 @@
 //======================================================================
 //
-// siv_cmac_core.v
-// ---------------
+// aes_siv_core.v
+// --------------
 // Implementation av aead_aes_siv_cmac as specified in RFC 5297:
 // https://tools.ietf.org/html/rfc5297
 //
@@ -41,31 +41,31 @@
 //
 //======================================================================
 
-module siv_cmac_core(
-                     input wire            clk,
-                     input wire            reset_n,
+module aes_siv_core(
+                    input wire            clk,
+                    input wire            reset_n,
 
-                     input wire            s2v_init,
-                     input wire            s2v_first_block,
-                     input wire            s2v_next_block,
-                     input wire            s2v_final_block,
-                     input wire            s2v_finalize,
+                    input wire            s2v_init,
+                    input wire            s2v_first_block,
+                    input wire            s2v_next_block,
+                    input wire            s2v_final_block,
+                    input wire            s2v_finalize,
 
-                     input wire            ctr_init,
-                     input wire            ctr_next,
-                     input wire            ctr_finalize,
+                    input wire            ctr_init,
+                    input wire            ctr_next,
+                    input wire            ctr_finalize,
 
-                     input wire            encdec,
-                     input wire [511 : 0]  key,
-                     input wire            mode,
+                    input wire            encdec,
+                    input wire [511 : 0]  key,
+                    input wire            mode,
 
-                     input wire [127 : 0]  block,
-                     input wire [7 : 0]    blocklen,
+                    input wire [127 : 0]  block,
+                    input wire [7 : 0]    blocklen,
 
-                     output wire           ready,
-                     output wire [127 : 0] result,
-                     output wire [127 : 0] tag
-                    );
+                    output wire           ready,
+                    output wire [127 : 0] result,
+                    output wire [127 : 0] tag
+                   );
 
 
   //----------------------------------------------------------------
@@ -625,8 +625,8 @@ module siv_cmac_core(
           end
       endcase // case (core_ctrl_reg)
     end // block: core_ctrl
-endmodule // siv_cmac_core
+endmodule // aes_siv_core
 
 //======================================================================
-// EOF siv_cmac_core.v
+// EOF aes_siv_core.v
 //======================================================================
