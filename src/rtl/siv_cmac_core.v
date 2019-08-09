@@ -45,7 +45,6 @@ module siv_cmac_core(
                      input wire            clk,
                      input wire            reset_n,
 
-                     input wire            init,
                      input wire            s2v_init,
                      input wire            s2v_first_block,
                      input wire            s2v_next_block,
@@ -424,216 +423,203 @@ module siv_cmac_core(
       core_ctrl_we    = 1'h0;
 
 
-      // init/reset everything no matter what.
-      // Force FSM to move to wait for any AES operation
-      // complete (and discard the results) and then go
-      // to idle.
-      if (init)
-        begin
-          s2v_state_new = 1'h0;
-          s2v_state_we  = 1'h1;
-          core_ctrl_new = CTRL_WAIT_READY;
-          core_ctrl_we  = 1'h1;
-        end
-      else
-        begin
-          case (core_ctrl_reg)
-            CTRL_IDLE:
+      case (core_ctrl_reg)
+        CTRL_IDLE:
+          begin
+            if (s2v_init)
               begin
-                if (s2v_init)
-                  begin
-                    cmac_init     = 1'h1;
-                    aes_mux_ctrl  = AES_CMAC;
-                    ready_new     = 1'h0;
-                    ready_we      = 1'h1;
-                    core_ctrl_new = CTRL_S2V_INIT0;
-                    core_ctrl_we  = 1'h1;
-                  end
+                cmac_init     = 1'h1;
+                aes_mux_ctrl  = AES_CMAC;
+                ready_new     = 1'h0;
+                ready_we      = 1'h1;
+                core_ctrl_new = CTRL_S2V_INIT0;
+                core_ctrl_we  = 1'h1;
+              end
 
-                if (s2v_first_block)
-                  begin
-                    block_we      = 1'h1;
-                  end
-
-
-                if (s2v_next_block)
-                  begin
-                    block_we      = 1'h1;
-                  end
-
-                if (s2v_final_block)
-                  begin
-                    block_we      = 1'h1;
-                  end
-
-                if (s2v_finalize)
-                  begin
-                    cmac_init     = 1'h1;
-                    block_we      = 1'h1;
-                    aes_mux_ctrl  = AES_CMAC;
-                    ready_new     = 1'h0;
-                    ready_we      = 1'h1;
-                    core_ctrl_new = CTRL_S2V_FINALIZE0;
-                    core_ctrl_we  = 1'h1;
-                  end
-
-                if (ctr_init)
-                  begin
-                    ready_new     = 1'h0;
-                    ready_we      = 1'h1;
-                    core_ctrl_new = CTRL_CTR_INIT0;
-                    core_ctrl_we  = 1'h1;
-                  end
-
-                if (ctr_next)
-                  begin
-                    block_we      = 1'h1;
-                    ready_new     = 1'h0;
-                    ready_we      = 1'h1;
-                    core_ctrl_new = CTRL_CTR_NEXT0;
-                    core_ctrl_we  = 1'h1;
-                  end
-
-                if (ctr_finalize)
-                  begin
-                    block_we = 1'h1;
-                  end
+            if (s2v_first_block)
+              begin
+                block_we      = 1'h1;
               end
 
 
-            CTRL_S2V_INIT0:
+            if (s2v_next_block)
               begin
+                block_we      = 1'h1;
+              end
+
+            if (s2v_final_block)
+              begin
+                block_we      = 1'h1;
+              end
+
+            if (s2v_finalize)
+              begin
+                cmac_init     = 1'h1;
+                block_we      = 1'h1;
                 aes_mux_ctrl  = AES_CMAC;
-                if (cmac_ready)
+                ready_new     = 1'h0;
+                ready_we      = 1'h1;
+                core_ctrl_new = CTRL_S2V_FINALIZE0;
+                core_ctrl_we  = 1'h1;
+              end
+
+            if (ctr_init)
+              begin
+                ready_new     = 1'h0;
+                ready_we      = 1'h1;
+                core_ctrl_new = CTRL_CTR_INIT0;
+                core_ctrl_we  = 1'h1;
+              end
+
+            if (ctr_next)
+              begin
+                block_we      = 1'h1;
+                ready_new     = 1'h0;
+                ready_we      = 1'h1;
+                core_ctrl_new = CTRL_CTR_NEXT0;
+                core_ctrl_we  = 1'h1;
+              end
+
+            if (ctr_finalize)
+              begin
+                block_we = 1'h1;
+              end
+          end
+
+
+        CTRL_S2V_INIT0:
+          begin
+            aes_mux_ctrl  = AES_CMAC;
+            if (cmac_ready)
+              begin
+                cmac_inputs     = CMAC_ZEROES;
+                cmac_final_size = AES_BLOCK_SIZE;
+                cmac_finalize   = 1'h1;
+                core_ctrl_new   = CTRL_S2V_INIT1;
+                core_ctrl_we    = 1'h1;
+              end
+          end
+
+
+        CTRL_S2V_INIT1:
+          begin
+            aes_mux_ctrl  = AES_CMAC;
+
+            if (cmac_ready)
+              begin
+                s2v_state_new = 1'h1;
+                s2v_state_we  = 1'h1;
+                ready_new     = 1'h1;
+                ready_we      = 1'h1;
+                core_ctrl_new = CTRL_IDLE;
+                core_ctrl_we  = 1'h1;
+              end
+          end
+
+
+        CTRL_S2V_FINALIZE0:
+          begin
+            aes_mux_ctrl  = AES_CMAC;
+
+            if (cmac_ready)
+              begin
+                if (!s2v_state_reg)
                   begin
-                    cmac_inputs     = CMAC_ZEROES;
+                    cmac_inputs     = CMAC_ONES;
                     cmac_final_size = AES_BLOCK_SIZE;
-                    cmac_finalize   = 1'h1;
-                    core_ctrl_new   = CTRL_S2V_INIT1;
-                    core_ctrl_we    = 1'h1;
                   end
-              end
-
-            CTRL_S2V_INIT1:
-              begin
-                aes_mux_ctrl  = AES_CMAC;
-
-                if (cmac_ready)
+                else
                   begin
-                    s2v_state_new = 1'h1;
-                    s2v_state_we  = 1'h1;
-                    ready_new     = 1'h1;
-                    ready_we      = 1'h1;
-                    core_ctrl_new = CTRL_IDLE;
-                    core_ctrl_we  = 1'h1;
+
                   end
-              end
-
-
-            CTRL_S2V_FINALIZE0:
-              begin
-                aes_mux_ctrl  = AES_CMAC;
-
-                if (cmac_ready)
-                  begin
-                    if (!s2v_state_reg)
-                      begin
-                        cmac_inputs     = CMAC_ONES;
-                        cmac_final_size = AES_BLOCK_SIZE;
-                      end
-                    else
-                      begin
-
-                      end
-                    cmac_finalize = 1'h1;
-                    core_ctrl_new = CTRL_S2V_FINALIZE1;
-                    core_ctrl_we  = 1'h1;
-                  end
-              end
-
-            CTRL_S2V_FINALIZE1:
-              begin
-                if (cmac_ready)
-                  begin
-                    v_new         = 1'h1;
-                    ready_new     = 1'h1;
-                    ready_we      = 1'h1;
-                    core_ctrl_new = CTRL_IDLE;
-                    core_ctrl_we  = 1'h1;
-                  end
-              end
-
-
-            CTRL_CTR_INIT0:
-              begin
-                init_ctr      = 1'h1;
-                ctr_aes_init  = 1'h1;
-                aes_mux_ctrl  = AES_CTR;
-                core_ctrl_new = CTRL_CTR_INIT1;
+                cmac_finalize = 1'h1;
+                core_ctrl_new = CTRL_S2V_FINALIZE1;
                 core_ctrl_we  = 1'h1;
               end
+          end
 
 
-            CTRL_CTR_INIT1:
+        CTRL_S2V_FINALIZE1:
+          begin
+            if (cmac_ready)
               begin
-                aes_mux_ctrl = AES_CTR;
-
-                if (aes_ready)
-                  begin
-                    ready_new     = 1'h1;
-                    ready_we      = 1'h1;
-                    core_ctrl_new = CTRL_IDLE;
-                    core_ctrl_we  = 1'h1;
-                  end
-              end
-
-
-            CTRL_CTR_NEXT0:
-              begin
-                ctr_aes_next  = 1'h1;
-                aes_mux_ctrl  = AES_CTR;
-                core_ctrl_new = CTRL_CTR_NEXT1;
+                s2v_state_new = 1'h0;
+                s2v_state_we  = 1'h1;
+                v_new         = 1'h1;
+                ready_new     = 1'h1;
+                ready_we      = 1'h1;
+                core_ctrl_new = CTRL_IDLE;
                 core_ctrl_we  = 1'h1;
               end
+          end
 
 
-            CTRL_CTR_NEXT1:
+        CTRL_CTR_INIT0:
+          begin
+            init_ctr      = 1'h1;
+            ctr_aes_init  = 1'h1;
+            aes_mux_ctrl  = AES_CTR;
+            core_ctrl_new = CTRL_CTR_INIT1;
+            core_ctrl_we  = 1'h1;
+          end
+
+
+        CTRL_CTR_INIT1:
+          begin
+            aes_mux_ctrl = AES_CTR;
+
+            if (aes_ready)
               begin
-                aes_mux_ctrl = AES_CTR;
-
-                if (aes_ready)
-                  begin
-                    update_ctr    = 1'h1;
-                    result_we     = 1'h1;
-                    ready_new     = 1'h1;
-                    ready_we      = 1'h1;
-                    core_ctrl_new = CTRL_IDLE;
-                    core_ctrl_we  = 1'h1;
-                  end
+                ready_new     = 1'h1;
+                ready_we      = 1'h1;
+                core_ctrl_new = CTRL_IDLE;
+                core_ctrl_we  = 1'h1;
               end
+          end
 
 
-            CTRL_WAIT_READY:
+        CTRL_CTR_NEXT0:
+          begin
+            ctr_aes_next  = 1'h1;
+            aes_mux_ctrl  = AES_CTR;
+            core_ctrl_new = CTRL_CTR_NEXT1;
+            core_ctrl_we  = 1'h1;
+          end
+
+
+        CTRL_CTR_NEXT1:
+          begin
+            aes_mux_ctrl = AES_CTR;
+
+            if (aes_ready)
               begin
-                if (aes_ready)
-                  begin
-                    ready_new     = 1'h1;
-                    ready_we      = 1'h1;
-                    core_ctrl_new = CTRL_IDLE;
-                    core_ctrl_we  = 1'h1;
-                  end
+                update_ctr    = 1'h1;
+                result_we     = 1'h1;
+                ready_new     = 1'h1;
+                ready_we      = 1'h1;
+                core_ctrl_new = CTRL_IDLE;
+                core_ctrl_we  = 1'h1;
               end
+          end
 
-            default:
+
+        CTRL_WAIT_READY:
+          begin
+            if (aes_ready)
               begin
-
+                ready_new     = 1'h1;
+                ready_we      = 1'h1;
+                core_ctrl_new = CTRL_IDLE;
+                core_ctrl_we  = 1'h1;
               end
-          endcase // case (core_ctrl_reg)
-        end
+          end
 
+        default:
+          begin
 
-
-    end // core_ctrl
+          end
+      endcase // case (core_ctrl_reg)
+    end // block: core_ctrl
 endmodule // siv_cmac_core
 
 //======================================================================
