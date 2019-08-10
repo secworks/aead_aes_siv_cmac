@@ -351,17 +351,17 @@ module tb_aes_siv_core();
       #(2 * CLK_PERIOD);
       debug_ctrl = 0;
 
-      if (dut.d_reg != 128'hfbeed618_35713366_7c85e08f_7236a8de)
+      if (dut.d_reg != 128'h0e04dfafc1efbf040140582859bf073a)
         begin
-          $display("TC2: ERROR - K1 incorrect. Expected 0xfbeed618_35713366_7c85e08f_7236a8de, got 0x%032x.", dut.d_reg);
+          $display("TC2: ERROR - d_reg incorrect. Expected 0x0e04dfafc1efbf040140582859bf073a, got 0x%032x.", dut.d_reg);
           tc_correct = 0;
           inc_error_ctr();
         end
 
       if (tc_correct)
-        $display("TC2: SUCCESS - K1 and K2 subkeys correctly generated.");
+        $display("TC2: SUCCESS - d_reg correctly initialized.");
       else
-        $display("TC2: NO SUCCESS - Subkeys not correctly generated.");
+        $display("TC2: NO SUCCESS - d_reg not correctly initialized.");
       $display("");
     end
   endtask // tc2

@@ -453,6 +453,9 @@ module aes_siv_core(
 
         CTRL_S2V_INIT1:
           begin
+            cmac_inputs     = CMAC_ZEROES;
+            cmac_final_size = AES_BLOCK_SIZE;
+
             if (cmac_ready)
               begin
                 s2v_state_new = 1'h1;
