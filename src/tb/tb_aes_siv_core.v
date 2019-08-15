@@ -58,6 +58,8 @@ module tb_aes_siv_core();
 
   localparam TIMEOUT_CYCLES = 10000;
 
+  reg [127 : 0] testreg;
+
 
   //----------------------------------------------------------------
   // Register and Wire declarations.
@@ -184,8 +186,8 @@ module tb_aes_siv_core();
       $display("");
 
       $display("CMAC:");
-      $display("cmac_ready: 0x%01x, cmac_init: 0x%01x, cmac_next: 0x%01x, cmac_finalize = 0x%01x",
-               dut.cmac_ready, dut.cmac_init, dut.cmac_next, dut.cmac_finalize);
+      $display("cmac_ready: 0x%01x, cmac_init: 0x%01x, cmac_next: 0x%01x, cmac_finalize = 0x%01x,  cmac_final_length = 0x%02x",
+               dut.cmac_ready, dut.cmac_init, dut.cmac_next, dut.cmac_finalize, dut.cmac_final_size);
       $display("cmac_keylen: 0x%01x, cmac_key: 0x%032x", dut.cmac_keylen, dut.cmac_key);
       $display("cmac_block: 0x%016x, cmac_result: 0x%016x", dut.cmac_block, dut.cmac_result);
       $display("");
@@ -392,6 +394,12 @@ module tb_aes_siv_core();
       debug_ctrl = 1;
 
       $display("TC3: Check that v_reg is set when no AD has been processed.");
+
+      $display("TC3: Resetting DUT first.");
+      reset_dut();
+      #(2 * CLK_PERIOD);
+
+      $display("TC3: Calling s2v finalize.");
       tb_key  = {128'hfffefdfc_fbfaf9f8_f7f6f5f4_f3f2f1f0, {128{1'h0}},
                    128'hf0f1f2f3_f4f5f6f7_f8f9fafb_fcfdfeff, {128{1'h0}}};
       tb_mode = AEAD_AES_SIV_CMAC_256;
@@ -404,9 +412,9 @@ module tb_aes_siv_core();
       #(2 * CLK_PERIOD);
       debug_ctrl = 0;
 
-      if (dut.v_reg != 128'h0e04dfafc1efbf040140582859bf073a)
+      if (dut.v_reg != 128'h949f99cbcc3eb5da6d3c45d0f59aa9c7)
         begin
-          $display("TC2: ERROR - v_reg incorrect. Expected 0x0e04dfafc1efbf040140582859bf073a, got 0x%032x.", dut.v_reg);
+          $display("TC2: ERROR - v_reg incorrect. Expected 0x949f99cbcc3eb5da6d3c45d0f59aa9c7, got 0x%032x.", dut.v_reg);
           tc_correct = 0;
           inc_error_ctr();
         end
@@ -418,6 +426,56 @@ module tb_aes_siv_core();
       $display("");
     end
   endtask // tc3_s2v_finalize_no_ad
+
+
+
+  //----------------------------------------------------------------
+  // tc3_s2v_ad1
+  //
+  // Check that pulling s2v_finalize before no AD has been
+  // processed leads to v_reg getting the CMAC for all one data.
+  // Key from RFC 5297.
+  //----------------------------------------------------------------
+  task tc4_s2v_ad1;
+    begin : tc2
+      inc_tc_ctr();
+      tc_correct = 1;
+
+      debug_ctrl = 1;
+
+      $display("TC3: Check that v_reg is set when no AD has been processed.");
+
+      $display("TC3: Resetting DUT first.");
+      reset_dut();
+      #(2 * CLK_PERIOD);
+
+      $display("TC3: Calling s2v finalize.");
+      tb_key  = {128'hfffefdfc_fbfaf9f8_f7f6f5f4_f3f2f1f0, {128{1'h0}},
+                   128'hf0f1f2f3_f4f5f6f7_f8f9fafb_fcfdfeff, {128{1'h0}}};
+      tb_mode = AEAD_AES_SIV_CMAC_256;
+
+      tb_s2v_finalize = 1'h1;
+      #(2 * CLK_PERIOD);
+      tb_s2v_finalize = 1'h0;
+      wait_ready();
+
+      #(2 * CLK_PERIOD);
+      debug_ctrl = 0;
+
+      if (dut.v_reg != 128'h949f99cbcc3eb5da6d3c45d0f59aa9c7)
+        begin
+          $display("TC2: ERROR - v_reg incorrect. Expected 0x949f99cbcc3eb5da6d3c45d0f59aa9c7, got 0x%032x.", dut.v_reg);
+          tc_correct = 0;
+          inc_error_ctr();
+        end
+
+      if (tc_correct)
+        $display("TCC: SUCCESS - v_reg correctly set.");
+      else
+        $display("TCC: NO SUCCESS - v_reg not correctly set.");
+      $display("");
+    end
+  endtask // tc4_s2v_ad1
 
 
   //----------------------------------------------------------------
