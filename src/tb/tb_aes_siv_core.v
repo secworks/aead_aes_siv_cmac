@@ -56,6 +56,8 @@ module tb_aes_siv_core();
 
   localparam AES_BLOCK_SIZE = 128;
 
+  localparam TIMEOUT_CYCLES = 10000;
+
 
   //----------------------------------------------------------------
   // Register and Wire declarations.
@@ -137,9 +139,15 @@ module tb_aes_siv_core();
   //----------------------------------------------------------------
   always
     begin : sys_monitor
+      #(CLK_PERIOD);
       cycle_ctr = cycle_ctr + 1;
 
-      #(CLK_PERIOD);
+      if (cycle_ctr == TIMEOUT_CYCLES)
+        begin
+          $display("Timout reached after %d cycles before simulation ended.",
+                   cycle_ctr);
+          $stop;
+        end
 
       if (debug_ctrl)
         begin
@@ -190,6 +198,8 @@ module tb_aes_siv_core();
                dut.s2v_state_reg, dut.s2v_state_new, dut.s2v_state_we);
       $display("d_reg: 0x%016x, d_new: 0x%016x, d_we: 0x%01x",
                dut.d_reg, dut.d_new, dut.d_we);
+      $display("v_reg: 0x%016x, v_we: 0x%01x",
+               dut.v_reg, dut.v_we);
       $display("x_reg: 0x%016x, x_new: 0x%016x, x_we: 0x%01x",
                dut.x_reg, dut.x_new, dut.x_we);
       $display("\n");
@@ -338,7 +348,7 @@ module tb_aes_siv_core();
 
       debug_ctrl = 1;
 
-      $display("TC2: Check that s2v_init works as expected..");
+      $display("TC2: Check that s2v_init works as expected.");
       tb_key  = {128'hfffefdfc_fbfaf9f8_f7f6f5f4_f3f2f1f0, {128{1'h0}},
                    128'hf0f1f2f3_f4f5f6f7_f8f9fafb_fcfdfeff, {128{1'h0}}};
       tb_mode = AEAD_AES_SIV_CMAC_256;
@@ -368,6 +378,49 @@ module tb_aes_siv_core();
 
 
   //----------------------------------------------------------------
+  // tc3_s2v_finalize_no_ad
+  //
+  // Check that pulling s2v_finalize before no AD has been
+  // processed leads to v_reg getting the CMAC for all one data.
+  // Key from RFC 5297.
+  //----------------------------------------------------------------
+  task tc3_s2v_finalize_no_ad;
+    begin : tc2
+      inc_tc_ctr();
+      tc_correct = 1;
+
+      debug_ctrl = 1;
+
+      $display("TC3: Check that v_reg is set when no AD has been processed.");
+      tb_key  = {128'hfffefdfc_fbfaf9f8_f7f6f5f4_f3f2f1f0, {128{1'h0}},
+                   128'hf0f1f2f3_f4f5f6f7_f8f9fafb_fcfdfeff, {128{1'h0}}};
+      tb_mode = AEAD_AES_SIV_CMAC_256;
+
+      tb_s2v_finalize = 1'h1;
+      #(2 * CLK_PERIOD);
+      tb_s2v_finalize = 1'h0;
+      wait_ready();
+
+      #(2 * CLK_PERIOD);
+      debug_ctrl = 0;
+
+      if (dut.v_reg != 128'h0e04dfafc1efbf040140582859bf073a)
+        begin
+          $display("TC2: ERROR - v_reg incorrect. Expected 0x0e04dfafc1efbf040140582859bf073a, got 0x%032x.", dut.v_reg);
+          tc_correct = 0;
+          inc_error_ctr();
+        end
+
+      if (tc_correct)
+        $display("TCC: SUCCESS - v_reg correctly set.");
+      else
+        $display("TCC: NO SUCCESS - v_reg not correctly set.");
+      $display("");
+    end
+  endtask // tc3_s2v_finalize_no_ad
+
+
+  //----------------------------------------------------------------
   // main
   //
   // The main test functionality.
@@ -381,6 +434,8 @@ module tb_aes_siv_core();
 
       tc1_reset_state();
       tc2_s2v_init();
+      tc3_s2v_finalize_no_ad();
+
       display_test_results();
 
       $display("*** AES_SIV_CORE simulation done. ***");
