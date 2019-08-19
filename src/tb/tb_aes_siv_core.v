@@ -72,23 +72,26 @@ module tb_aes_siv_core();
 
   reg            tb_clk;
   reg            tb_reset_n;
-
-  reg            tb_s2v_init;
-  reg            tb_s2v_first_block;
-  reg            tb_s2v_next_block;
-  reg            tb_s2v_final_block;
-  reg            tb_s2v_finalize;
-  reg            tb_ctr_init;
-  reg            tb_ctr_next;
-  reg            tb_ctr_finalize;
   reg            tb_encdec;
   reg [511 : 0]  tb_key;
   reg            tb_mode;
-  reg [127 : 0]  tb_block;
-  reg [7 : 0]    tb_blocklen;
+  reg            tb_start;
+  reg [15 :0]    tb_ad_start;
+  reg [15 :0]    tb_ad_blocks;
+  reg [7 : 0]    tb_ad_final_size;
+  reg [15 :0]    tb_pc_start;
+  reg [15 :0]    tb_pc_blocks;
+  reg [7 : 0]    tb_pc_final_size;
+  wire           tb_cs;
+  wire           tb_we;
+  reg            tb_ack;
+  wire [15 : 0]  tb_addr;
+  reg [127 : 0]  tb_block_in;
+  wire [127 : 0] tb_block_out;
+  wire [127 : 0] tb_tag_in;
+  wire [127 : 0] tb_tag_out;
+  wire           tb_tag_ok;
   wire           tb_ready;
-  wire [127 : 0] tb_result;
-  wire [127 : 0] tb_tag;
 
 
   //----------------------------------------------------------------
@@ -97,22 +100,31 @@ module tb_aes_siv_core();
   aes_siv_core dut(
                    .clk(tb_clk),
                    .reset_n(tb_reset_n),
-                   .s2v_init(tb_s2v_init),
-                   .s2v_first_block(tb_s2v_first_block),
-                   .s2v_next_block(tb_s2v_next_block),
-                   .s2v_final_block(tb_s2v_final_block),
-                   .s2v_finalize(tb_s2v_finalize),
-                   .ctr_init(tb_ctr_init),
-                   .ctr_next(tb_ctr_next),
-                   .ctr_finalize(tb_ctr_finalize),
+
                    .encdec(tb_encdec),
                    .key(tb_key),
                    .mode(tb_mode),
-                   .block(tb_block),
-                   .blocklen(tb_blocklen),
-                   .ready(tb_ready),
-                   .result(tb_result),
-                   .tag(tb_tag)
+                   .start(tb_start),
+
+                   .ad_start(tb_ad_start),
+                   .ad_blocks(tb_ad_blocks),
+                   .ad_final_size(tb_ad_final_size),
+
+                   .pc_start(tb_pc_start),
+                   .pc_blocks(tb_pc_blocks),
+                   .pc_final_size(tb_pc_final_size),
+
+                   .cs(tb_cs),
+                   .we(tb_we),
+                   .ack(tb_ack),
+                   .addr(tb_addr),
+                   .block_in(tb_block_in),
+                   .block_out(tb_block_out),
+
+                   .tag_in(tb_tag_in),
+                   .tag_out(tb_tag_out),
+                   .tag_ok(tb_tag_ok),
+                   .ready(tb_ready)
                   );
 
 
@@ -167,15 +179,8 @@ module tb_aes_siv_core();
     begin
       $display("cycle:  0x%016x", cycle_ctr);
       $display("Inputs and outputs:");
-      $display("s2v_init: 0x%01x, s2v_finalize: 0x%01x", dut.s2v_init, dut.s2v_finalize);
-      $display("s2v_first_block: 0x%01x, s2v_next_block: 0x%01x, s2v_final_block: 0x%01x",
-               dut.s2v_first_block, dut.s2v_next_block, dut.s2v_final_block);
-      $display("ctr_init: 0x%01x, ctr_next: 0x%01x, ctr_finalize: 0x%01x",
-               dut.ctr_init, dut.ctr_next, dut.ctr_finalize);
-      $display("key: 0x%064x", dut.key);
-      $display("blocklen: 0x%02x, block: 0x%016x", dut.blocklen, dut.block);
-      $display("ready: 0x%02x, result: 0x%016x, tag: 0x%016x",
-               dut.ready, dut.result, dut.tag);
+      $display("ready: 0x%02x, tag: 0x%016x",
+               dut.ready, dut.tag_out);
       $display("");
 
       $display("AES:");
@@ -258,21 +263,18 @@ module tb_aes_siv_core();
       tc_ctr     = 0;
       debug_ctrl = 0;
 
-      tb_clk             = 1'h0;
-      tb_reset_n         = 1'h1;
-      tb_s2v_init        = 1'h0;
-      tb_s2v_first_block = 1'h0;
-      tb_s2v_next_block  = 1'h0;
-      tb_s2v_final_block = 1'h0;
-      tb_s2v_finalize    = 1'h0;
-      tb_ctr_init        = 1'h0;
-      tb_ctr_next        = 1'h0;
-      tb_ctr_finalize    = 1'h0;
-      tb_encdec          = 1'h0;
-      tb_key             = 512'h0;
-      tb_mode            = 1'h0;
-      tb_block           = 128'h0;
-      tb_blocklen        = 1'h0;
+      tb_clk           = 1'h0;
+      tb_reset_n       = 1'h1;
+      tb_encdec        = 1'h0;
+      tb_key           = 512'h0;
+      tb_mode          = 1'h0;
+      tb_start         = 1'h0;
+      tb_ad_start      = 16'h0;
+      tb_ad_blocks     = 16'h0;
+      tb_ad_final_size = 8'h0;
+      tb_pc_start      = 16'h0;
+      tb_pc_blocks     = 16'h0;
+      tb_pc_final_size = 8'h0;
     end
   endtask // init_sim
 
@@ -355,9 +357,7 @@ module tb_aes_siv_core();
                    128'hf0f1f2f3_f4f5f6f7_f8f9fafb_fcfdfeff, {128{1'h0}}};
       tb_mode = AEAD_AES_SIV_CMAC_256;
 
-      tb_s2v_init = 1'h1;
       #(2 * CLK_PERIOD);
-      tb_s2v_init = 1'h0;
       wait_ready();
 
       #(2 * CLK_PERIOD);
@@ -404,9 +404,7 @@ module tb_aes_siv_core();
                    128'hf0f1f2f3_f4f5f6f7_f8f9fafb_fcfdfeff, {128{1'h0}}};
       tb_mode = AEAD_AES_SIV_CMAC_256;
 
-      tb_s2v_finalize = 1'h1;
       #(2 * CLK_PERIOD);
-      tb_s2v_finalize = 1'h0;
       wait_ready();
 
       #(2 * CLK_PERIOD);
@@ -454,9 +452,7 @@ module tb_aes_siv_core();
                    128'hf0f1f2f3_f4f5f6f7_f8f9fafb_fcfdfeff, {128{1'h0}}};
       tb_mode = AEAD_AES_SIV_CMAC_256;
 
-      tb_s2v_finalize = 1'h1;
       #(2 * CLK_PERIOD);
-      tb_s2v_finalize = 1'h0;
       wait_ready();
 
       #(2 * CLK_PERIOD);
