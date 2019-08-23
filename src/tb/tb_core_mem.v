@@ -41,9 +41,6 @@ module tb_core_mem(
                    input wire            clk,
                    input wire            reset_n,
 
-                   input wire [7 : 0]    wait_cycles,
-                   input wire            debug,
-
                    input wire            cs,
                    input wire            we,
                    output wire           ack,
@@ -53,8 +50,8 @@ module tb_core_mem(
                   );
 
 
-  localparam NUM_WORDS      = 128;
-  localparam DEFAULT_CYCLES = 8'h02;
+  localparam NUM_WORDS   = 128;
+  localparam WAIT_CYCLES = 8'h04;
 
 
   //----------------------------------------------------------------
@@ -121,7 +118,7 @@ module tb_core_mem(
         begin
           wait_ctr_new = wait_ctr_reg + 1'h1;
 
-          if (wait_ctr_reg >= DEFAULT_CYCLES)
+          if (wait_ctr_reg >= WAIT_CYCLES)
             begin
               ack_new = 1'h1;
               if (we)

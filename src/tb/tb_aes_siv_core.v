@@ -151,9 +151,6 @@ module tb_aes_siv_core();
   tb_core_mem mem(
                   .clk(tb_clk),
                   .reset_n(tb_reset_n),
-
-                  .wait_cycles(tb_wait_cycles),
-                  .debug(tb_debug),
                   .cs(mem_cs),
                   .we(mem_we),
                   .ack(mem_ack),
@@ -602,12 +599,25 @@ module tb_aes_siv_core();
 
       tb_cs = 1'h0;
       tb_we = 1'h0;
+      #(CLK_PERIOD);
 
       $display("TCX: Write to memory should have happened.");
       $display("Contents at address 0x003f: 0x%032x", mem.mem[16'h003f]);
       $display("Contents at address 0x0040: 0x%032x", mem.mem[16'h0040]);
       $display("Contents at address 0x0041: 0x%032x", mem.mem[16'h0041]);
       $display("");
+
+
+      // Set access mux to TB. Read data from address 0x0040.
+      tb_mem_ctrl = 1'h1;
+      tb_addr     = 16'h0040;
+      tb_cs       = 1'h1;
+      tb_we       = 1'h0;
+      wait_ack();
+      #(CLK_PERIOD);
+      $display("TCX: Read from memory should have happened.");
+      $display("Contents of block_rd: 0x%032x", mem_block_rd);
+      tb_cs       = 1'h0;
 
       #(2 * CLK_PERIOD);
       debug_mem = 0;
