@@ -68,10 +68,13 @@ module tb_core_mem(
   reg           tmp_ack;
   reg [127 : 0] tmp_block_rd;
 
+  reg           ack_reg;
+  reg           ack_new;
+
 
   //----------------------------------------------------------------
   //----------------------------------------------------------------
-  assign ack = tmp_ack;
+  assign ack = ack_reg;
   assign block_rd = tmp_block_rd;
 
 
@@ -91,10 +94,12 @@ module tb_core_mem(
             mem[i] <= 128'h0;
 
           wait_ctr_reg <= 8'h0;
+          ack_reg      <= 1'h0;
         end
       else
         begin
           wait_ctr_reg <= wait_ctr_new;
+          ack_reg     <= ack_new;
 
           if (mem_we)
             mem[addr] = block_wr;
@@ -109,7 +114,7 @@ module tb_core_mem(
     begin : mem_access;
       mem_we       = 1'h0;
       wait_ctr_new = 8'h0;
-      tmp_ack      = 1'h0;
+      ack_new      = 1'h0;
       tmp_block_rd = 128'h0;
 
       if (cs)
@@ -118,7 +123,7 @@ module tb_core_mem(
 
           if (wait_ctr_reg >= DEFAULT_CYCLES)
             begin
-              tmp_ack = 1'h1;
+              ack_new = 1'h1;
               if (we)
                 mem_we = 1'h1;
               else

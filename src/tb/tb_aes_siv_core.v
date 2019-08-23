@@ -235,6 +235,7 @@ module tb_aes_siv_core();
   //----------------------------------------------------------------
   task dump_dut_state;
     begin
+      $display("\n");
       $display("cycle:  0x%016x", cycle_ctr);
       $display("Inputs and outputs:");
       $display("ready: 0x%02x, tag: 0x%016x",
@@ -279,6 +280,7 @@ module tb_aes_siv_core();
   //----------------------------------------------------------------
   task dump_mem_state;
     begin
+      $display("\n");
       $display("cycle: 0x%016x", cycle_ctr);
       $display("Acess mux ctrl: 0x%01x:", tb_mem_ctrl);
       $display("Inputs and outputs:");
@@ -288,9 +290,9 @@ module tb_aes_siv_core();
       $display("block_rd: 0x%032x", mem.block_rd);
       $display("");
       $display("Internal states:");
+      $display("ack_new: 0x%01x, mem_we: 0x%01x", mem.ack_new, mem.mem_we);
       $display("wait_ctr_reg: 0x%02x, wait_ctr_new: 0x%02x",
                mem.wait_ctr_reg, mem.wait_ctr_new);
-      $display("");
       $display("\n");
     end
   endtask // dump_mem_state
@@ -405,6 +407,21 @@ module tb_aes_siv_core();
         #(CLK_PERIOD);
     end
   endtask // wait_ready
+
+
+  //----------------------------------------------------------------
+  // wait_ack()
+  //
+  // Wait for the ack from memory to be asserted.
+  //----------------------------------------------------------------
+  task wait_ack;
+    begin : wack
+      #(2 * CLK_PERIOD);
+
+      while (mem_ack == 0)
+        #(CLK_PERIOD);
+    end
+  endtask // wait_ack
 
 
   //----------------------------------------------------------------
@@ -579,7 +596,9 @@ module tb_aes_siv_core();
       tb_cs       = 1'h1;
       tb_we       = 1'h1;
 
-      #(10 * CLK_PERIOD);
+      wait_ack();
+
+      #(CLK_PERIOD);
 
       tb_cs = 1'h0;
       tb_we = 1'h0;
@@ -588,6 +607,7 @@ module tb_aes_siv_core();
       $display("Contents at address 0x003f: 0x%032x", mem.mem[16'h003f]);
       $display("Contents at address 0x0040: 0x%032x", mem.mem[16'h0040]);
       $display("Contents at address 0x0041: 0x%032x", mem.mem[16'h0041]);
+      $display("");
 
       #(2 * CLK_PERIOD);
       debug_mem = 0;
