@@ -43,7 +43,7 @@ CMAC_SRC = ../../cmac/src/rtl/cmac_core.v $(AES_SRC)
 TB_CMAC_SRC = ../../cmac/src/tb/tb_cmac_core.v
 
 CORE_SRC = ../src/rtl/aes_siv_core.v $(CMAC_SRC)
-TB_CORE_SRC = ../src/tb/tb_aes_siv_core.v
+TB_CORE_SRC = ../src/tb/tb_aes_siv_core.v ../src/tb/tb_core_mem.v
 
 CC = iverilog
 CC_FLAGS = -Wall

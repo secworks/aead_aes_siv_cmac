@@ -94,7 +94,7 @@ module tb_core_mem(
         end
       else
         begin
-            wait_ctr_reg <= wait_ctr_reg;
+          wait_ctr_reg <= wait_ctr_new;
 
           if (mem_we)
             mem[addr] = block_wr;
@@ -107,8 +107,8 @@ module tb_core_mem(
   //----------------------------------------------------------------
   always @*
     begin : mem_access;
-      mem_we       = 1'h1;
-      wait_ctr_reg = 8'h0;
+      mem_we       = 1'h0;
+      wait_ctr_new = 8'h0;
       tmp_ack      = 1'h0;
       tmp_block_rd = 128'h0;
 

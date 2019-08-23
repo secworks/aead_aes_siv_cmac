@@ -62,8 +62,8 @@ module aes_siv_core(
                     output wire           we,
                     input wire            ack,
                     output wire [15 : 0]  addr,
-                    input wire [127 : 0]  block_in,
-                    output wire [127 : 0] block_out,
+                    input wire [127 : 0]  block_rd,
+                    output wire [127 : 0] block_wr,
 
                     output wire [127 : 0] tag_in,
                     output wire [127 : 0] tag_out,
@@ -260,7 +260,7 @@ module aes_siv_core(
             ready_reg <= ready_new;
 
           if (block_we)
-            block_reg <= block_in;
+            block_reg <= block_rd;
 
           if (d_we)
             d_reg <= d_new;
