@@ -186,7 +186,7 @@ module aes_siv_core(
   //----------------------------------------------------------------
   // Functions.
   //----------------------------------------------------------------
-  function [127 : 0] double(input [127 : 0] op);
+  function automatic [127 : 0] double(input [127 : 0] op);
     begin
       if (op[127])
         double = {op[126 : 0], 1'h0} ^ 128'h87;
